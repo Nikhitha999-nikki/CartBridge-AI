@@ -1,0 +1,230 @@
+<header class="topbar">
+  <a class="brand" routerLink="/" aria-label="CartBridge home">
+    <span class="brand-mark">cb</span>
+    <span>cartbridge<span class="brand-ai">.ai</span></span>
+  </a>
+  <nav class="topbar-nav" aria-label="Main navigation">
+    <span class="sandbox-label">PayPal Sandbox</span>
+    <a class="brand-ai brand-ai_merchant" routerLink="/dashboard">Merchant dashboard</a>
+  </nav>
+</header>
+
+<main class="page">
+  <section class="intro">
+    <p class="eyebrow">A smoother way through checkout</p>
+    <h1>Good finds deserve<br /><span>a better finish.</span></h1>
+    <p class="intro-copy">
+      Choose something you love and try a secure PayPal Sandbox checkout. Your payment is only
+      marked complete after our server verifies it with PayPal.
+    </p>
+  </section>
+
+  <section class="checkout-layout" aria-label="Demo storefront and checkout">
+    <div class="catalogue">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">The little good things shop</p>
+          <h2>Pick your next favourite</h2>
+        </div>
+        <span class="item-count">{{ products().length }} items</span>
+      </div>
+
+      @if (loadingProducts()) {
+        <div class="notice" role="status">Loading the demo shop…</div>
+      } @else if (products().length === 0) {
+        <div class="notice error" role="alert">{{ errorMessage() || 'The shop is unavailable.' }}</div>
+      } @else {
+        <div class="product-list">
+          @for (product of products(); track product.id) {
+            <button
+              type="button"
+              class="product-card"
+              [class.selected]="selectedProductId() === product.id"
+              [attr.aria-pressed]="selectedProductId() === product.id"
+              [disabled]="busy() || paymentResult()?.status === 'COMPLETED'"
+              (click)="selectProduct(product.id)"
+            >
+              <span class="product-art" [attr.data-product]="product.id">
+                @if (product.id === 'everyday-backpack') {
+                  <span class="art-bag" aria-hidden="true"></span>
+                } @else if (product.id === 'wireless-earbuds') {
+                  <span class="art-earbuds" aria-hidden="true">◖ ◗</span>
+                } @else {
+                  <span class="art-mug" aria-hidden="true">◡</span>
+                }
+              </span>
+              <span class="product-info">
+                <span class="product-name">{{ product.name }}</span>
+                <span class="product-description">{{ product.description }}</span>
+                <span class="product-price">{{ formatPrice(product.price, product.currency) }}</span>
+              </span>
+              <span class="selection-mark" aria-hidden="true">
+                {{ selectedProductId() === product.id ? '✓' : '+' }}
+              </span>
+            </button>
+          }
+        </div>
+      }
+    </div>
+
+    <aside class="order-card" aria-label="Order summary">
+      <div class="order-header">
+        <span class="lock-mark" aria-hidden="true">↗</span>
+        <div>
+          <p class="eyebrow">Your checkout</p>
+          <h2>Almost yours</h2>
+        </div>
+      </div>
+
+      @if (selectedProduct(); as product) {
+        <div class="summary-product">
+          <div class="summary-art" [attr.data-product]="product.id" aria-hidden="true"></div>
+          <div>
+            <strong>{{ product.name }}</strong>
+            <span>{{ formatPrice(product.price, product.currency) }} each</span>
+          </div>
+        </div>
+
+        <label class="quantity-label" for="quantity">Quantity</label>
+        <select
+          id="quantity"
+          [value]="quantity()"
+          [disabled]="busy() || paymentResult()?.status === 'COMPLETED'"
+          (change)="updateQuantity($any($event.target).value)"
+        >
+          @for (count of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; track count) {
+            <option [value]="count">{{ count }}</option>
+          }
+        </select>
+
+        <div class="summary-total">
+          <span>Total</span>
+          <strong>{{ formatPrice(total(), product.currency) }}</strong>
+        </div>
+      } @else {
+        <p class="notice">Choose a product to see your order total.</p>
+      }
+
+      @if (loadingPayPal()) {
+        <div class="paypal-loading" role="status"><span class="spinner"></span> Preparing secure checkout…</div>
+      } @else if (configuration() && !sdkError()) {
+        <div
+          #paypalButtons
+          class="paypal-buttons"
+          aria-label="PayPal Checkout"
+          [hidden]="paymentResult()?.status === 'COMPLETED'"
+        ></div>
+      } @else {
+        <div class="notice error" role="alert">{{ sdkError() || 'PayPal Sandbox is unavailable.' }}</div>
+      }
+
+      @if (busy()) {
+        <p class="checkout-progress" role="status"><span class="spinner"></span> Processing securely with PayPal…</p>
+      }
+
+      @if (errorMessage()) {
+        <p class="notice error" role="alert">{{ errorMessage() }}</p>
+      }
+
+      @if (paymentResult(); as result) {
+        <div class="payment-result" [class]="statusClass()" role="status" aria-live="polite">
+          <span class="result-indicator" aria-hidden="true">
+            @switch (result.status) {
+              @case ('COMPLETED') { ✓ }
+              @case ('PENDING') { … }
+              @case ('CANCELLED') { × }
+              @case ('FAILED') { ! }
+              @default { · }
+            }
+          </span>
+          <div>
+            <strong>{{ statusLabel() }}</strong>
+            <p>{{ result.message }}</p>
+            @if (result.status === 'COMPLETED' && result.paypalCaptureId) {
+              <small>Verified capture reference: {{ result.paypalCaptureId }}</small>
+            }
+          </div>
+        </div>
+      }
+
+      @if (paymentResult()?.status === 'COMPLETED') {
+        <button type="button" class="new-checkout-button" (click)="startNewCheckout()">
+          Start a new checkout
+        </button>
+      }
+
+      <p class="secure-note"><span aria-hidden="true">⌑</span> You’ll approve in PayPal. We never see your password or card details.</p>
+
+      <section class="recovery-assistant" aria-labelledby="recovery-heading">
+        <div class="recovery-heading">
+          <span class="recovery-mark" aria-hidden="true">✦</span>
+          <div>
+            <h3 id="recovery-heading">Need help with checkout?</h3>
+            <p>Our AI assistant can help troubleshoot payment problems and suggest a safe next step.</p>
+          </div>
+        </div>
+
+        <label class="recovery-label" for="recovery-problem">What happened?</label>
+        <textarea
+          id="recovery-problem"
+          rows="4"
+          maxlength="1000"
+          [value]="problemDescription()"
+          [disabled]="isRecoveryLoading()"
+          (input)="updateProblemDescription($event)"
+          placeholder="Describe the checkout problem. Don't include passwords or payment details."
+        ></textarea>
+        <div class="recovery-form-footer">
+          <span>{{ problemDescription().length }}/1000</span>
+          <button
+            type="button"
+            class="recovery-submit"
+            [disabled]="isRecoveryLoading()"
+            (click)="submitRecoveryRequest()"
+          >
+            Get AI Assistance
+          </button>
+        </div>
+
+        @if (isRecoveryLoading()) {
+          <p class="recovery-loading" role="status">
+            <span class="spinner"></span> Reviewing your checkout details…
+          </p>
+        }
+
+        @if (recoveryError()) {
+          <p class="recovery-error" role="alert">{{ recoveryError() }}</p>
+        }
+
+        @if (recoveryAdvice(); as advice) {
+          <div class="recovery-advice" aria-live="polite">
+            <span class="advice-source">
+              {{ advice.adviceSource === 'GEMINI' ? 'AI-generated' : 'Fallback guidance' }}
+            </span>
+            <section>
+              <h4>Detected Issue</h4>
+              <p>{{ advice.detectedIssue }}</p>
+            </section>
+            <section>
+              <h4>Explanation</h4>
+              <p>{{ advice.explanation }}</p>
+            </section>
+            <section>
+              <h4>Recommended Next Action</h4>
+              <p>{{ advice.recommendedNextAction }}</p>
+            </section>
+            <section class="safety-warning">
+              <h4>Safety Warning</h4>
+              <p>{{ advice.safetyWarning }}</p>
+            </section>
+          </div>
+        }
+      </section>
+    </aside>
+  </section>
+
+  <footer>
+    <span>CartBridge AI · Checkout recovery, made clearer.</span>
+    <span>Sandbox only · No real payment is made.</span>
+  </footer>
+</main>

@@ -1,0 +1,160 @@
+<header class="topbar">
+  <a class="brand" routerLink="/" aria-label="CartBridge storefront">
+    <span class="brand-mark">cb</span>
+    <span>cartbridge<span class="brand-ai">.ai</span></span>
+  </a>
+  <nav class="topbar-nav" aria-label="Main navigation">
+    <a class="nav-link" routerLink="/">Storefront</a>
+    <span class="nav-current" aria-current="page">Merchant dashboard</span>
+  </nav>
+</header>
+
+<main class="dashboard-page">
+  <section class="dashboard-heading">
+    <div>
+      <p class="eyebrow">Merchant overview</p>
+      <h1>Recovery activity</h1>
+      <p class="intro-copy">
+        Review checkout status and the guidance shared with shoppers during this backend session.
+      </p>
+    </div>
+    <button type="button" class="refresh-button" [disabled]="isLoading()" (click)="refresh()">
+      {{ isLoading() ? 'Refreshing…' : 'Refresh' }}
+    </button>
+  </section>
+
+  @if (isLoading() && !dashboard()) {
+    <p class="notice" role="status">Loading merchant activity…</p>
+  } @else if (errorMessage() && !dashboard()) {
+    <section class="notice error" role="alert">
+      <p>{{ errorMessage() }}</p>
+      <button type="button" class="refresh-button" (click)="refresh()">Try again</button>
+    </section>
+  } @else if (dashboard(); as data) {
+    @if (errorMessage()) {
+      <p class="inline-error" role="alert">{{ errorMessage() }}</p>
+    }
+
+    <section class="summary-grid" aria-label="Checkout summary">
+      <article class="summary-card total-card">
+        <span>Total checkouts</span>
+        <strong>{{ data.totalCheckoutSessions }}</strong>
+      </article>
+      <article class="summary-card completed-card">
+        <span>Completed</span>
+        <strong>{{ statusCount('COMPLETED') }}</strong>
+      </article>
+      <article class="summary-card pending-card">
+        <span>Pending</span>
+        <strong>{{ statusCount('PENDING') }}</strong>
+      </article>
+      <article class="summary-card failed-card">
+        <span>Failed</span>
+        <strong>{{ statusCount('FAILED') }}</strong>
+      </article>
+      <article class="summary-card cancelled-card">
+        <span>Cancelled</span>
+        <strong>{{ statusCount('CANCELLED') }}</strong>
+      </article>
+    </section>
+
+    <section class="data-section" aria-labelledby="checkouts-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Checkout sessions</p>
+          <h2 id="checkouts-heading">Recent checkouts</h2>
+        </div>
+        <span class="record-count">{{ data.totalCheckoutSessions }} total</span>
+      </div>
+
+      @if (data.checkouts.length === 0) {
+        <p class="empty-state">No checkout sessions are available in this backend session.</p>
+      } @else {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Product</th>
+                <th scope="col">Quantity</th>
+                <th scope="col">Total</th>
+                <th scope="col">Created</th>
+                <th scope="col">Status</th>
+                <th scope="col">Payment references</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (checkout of data.checkouts; track checkout.id) {
+                <tr>
+                  <td>
+                    <strong>{{ checkout.productName }}</strong>
+                    <small>{{ checkout.id }}</small>
+                  </td>
+                  <td>{{ checkout.quantity }}</td>
+                  <td>{{ formatAmount(checkout.total, checkout.currency) }}</td>
+                  <td>{{ formatDate(checkout.createdAt) }}</td>
+                  <td><span class="status-badge" [class]="checkout.status.toLowerCase()">
+                    {{ checkout.status }}
+                  </span></td>
+                  <td class="references">
+                    @if (checkout.paypalOrderId) {
+                      <small>Order: {{ checkout.paypalOrderId }}</small>
+                    }
+                    @if (checkout.paypalCaptureId) {
+                      <small>Capture: {{ checkout.paypalCaptureId }}</small>
+                    }
+                    @if (!checkout.paypalOrderId && !checkout.paypalCaptureId) {
+                      <span>—</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    <section class="data-section" aria-labelledby="history-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Shopper assistance</p>
+          <h2 id="history-heading">Recovery history</h2>
+        </div>
+        <span class="record-count">{{ recoveryHistory().length }} records</span>
+      </div>
+
+      @if (recoveryHistory().length === 0) {
+        <p class="empty-state">Recovery conversations will appear here after advice is requested.</p>
+      } @else {
+        <div class="history-list">
+          @for (entry of recoveryHistory(); track $index) {
+            <article class="history-card">
+              <header>
+                <div>
+                  <span class="source-badge" [class.fallback]="entry.adviceSource === 'FALLBACK'">
+                    {{ entry.adviceSource === 'GEMINI' ? 'AI-generated' : 'Fallback guidance' }}
+                  </span>
+                  <span class="status-badge" [class]="entry.paymentStatus.toLowerCase()">
+                    {{ entry.paymentStatus }}
+                  </span>
+                </div>
+                <time>{{ formatDate(entry.timestamp) }}</time>
+              </header>
+              <p class="shopper-problem"><strong>Shopper problem:</strong> {{ entry.problemDescription }}</p>
+              <h3>{{ entry.detectedIssue }}</h3>
+              <p>{{ entry.recommendedNextAction }}</p>
+              @if (entry.safetyWarning) {
+                <p class="safety-note">{{ entry.safetyWarning }}</p>
+              }
+              <small>Checkout {{ entry.checkoutSessionId }}</small>
+            </article>
+          }
+        </div>
+      }
+    </section>
+  }
+
+  <p class="retention-note">
+    Demo data is held in memory and will be cleared when the backend restarts.
+  </p>
+</main>
