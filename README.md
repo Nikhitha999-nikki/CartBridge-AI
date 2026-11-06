@@ -44,11 +44,11 @@ The backend creates PayPal orders and captures only after buyer approval. It ver
 Add genuine screenshots captured from the running local app under `docs/screenshots/`, then replace these placeholders. Do not commit credentials, buyer information, or other sensitive data in screenshots.
 
 <!-- Replace with a real storefront screenshot at docs/screenshots/storefront.png. -->
-![Storefront and checkout screenshot placeholder](CartBridge AI 1.png)
-![Storefront and checkout screenshot placeholder](docs/screenshots/docs/screenshots/CartBridge AI 2.png)
+![Storefront and checkout screenshot placeholder](docs/screenshots/merchant.png)
+![Storefront and checkout screenshot placeholder](docs/screenshots/recovery_checkout.png)
 
 <!-- Replace with a real merchant dashboard screenshot at docs/screenshots/merchant-dashboard.png. -->
-![Merchant dashboard screenshot placeholder](docs/screenshots/CartBridge%20AI%20_%203.png)
+![Merchant dashboard screenshot placeholder](docs/screenshots/storefront.png)
 
 ## Technology
 
